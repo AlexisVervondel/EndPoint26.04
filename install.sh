@@ -24,13 +24,18 @@ while test "$#" -gt 0; do
 	esac
 done
 
+## run unattended: no prompts from this script, apt, dpkg or needrestart
+_y="-y"
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
 readonly _current_user="$(whoami)"
 echo -e "${_white_color} The current user is ${_current_user}${_default}"
 
 ## Force the user to run the script with root privileges
 if [[ "${_current_user}" != "root" ]]; then
 	echo -e "${_yellow_color} This script needs root priviledges ${_default}"
-	sudo "$0" "$_cli" "$_y"
+	sudo -n "$0" "$_cli" "$_y"
 	ret_val="$?"
 	exit "${ret_val}"
 fi
@@ -111,7 +116,7 @@ if [ "${_list_dependencies}" == " " ]; then
     _dpkg_error=0
 else
     echo -e "${_white_color}paths = ${_list_dependencies}${_default}"
-	dpkg -i "${_dependencies_path}"/*.deb
+	dpkg -i --force-confdef --force-confold "${_dependencies_path}"/*.deb
     _dpkg_error=$?
 fi
 
@@ -128,7 +133,7 @@ echo -e "${_white_color}Changing config file to match IP/PORT/Department with pr
 echo -e "${_white_color}${_path_installer}/${_configuration_file}${_default}"
 . "${_path_installer}/${_configuration_file}"
 
-apt -f $_y install "${_packages_path}"/epp-client_*.deb
+apt -f $_y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold install "${_packages_path}"/epp-client_*.deb
 _exit_code=$?
 if [ ${_exit_code} -ne 0 ]; then
     echo -e "${_red_color}Error: installing epp packages. Exiting...${_default}"
